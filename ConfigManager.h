@@ -12,15 +12,17 @@ public:
     struct Config {
         char spotifyClientId[64];
         char spotifyClientSecret[64];
-        char spotifyRefreshToken[160];
+        char spotifyRefreshToken[512]; // Increased for safety
         int rotation;
         int brightness;
+        int gmtOffset_sec;
     } config;
 
     ConfigManager() {
         memset(&config, 0, sizeof(config));
         config.rotation = 1;
         config.brightness = 3;
+        config.gmtOffset_sec = 0;
     }
 
     bool loadConfig() {
@@ -41,6 +43,7 @@ public:
         strlcpy(config.spotifyRefreshToken, doc["spotifyRefreshToken"] | "", sizeof(config.spotifyRefreshToken));
         config.rotation = doc["rotation"] | 1;
         config.brightness = doc["brightness"] | 3;
+        config.gmtOffset_sec = doc["gmtOffset_sec"] | 0;
 
         return true;
     }
@@ -52,6 +55,7 @@ public:
         doc["spotifyRefreshToken"] = config.spotifyRefreshToken;
         doc["rotation"] = config.rotation;
         doc["brightness"] = config.brightness;
+        doc["gmtOffset_sec"] = config.gmtOffset_sec;
 
         fs::File configFile = SPIFFS.open("/config.json", "w");
         if (!configFile) return false;

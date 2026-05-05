@@ -39,7 +39,10 @@ bool lastPlayState = false;
 bool isSettingsOpen = false;
 int tempRotation = 0;
 int tempBrightness = 3;
-unsigned long lastClockUpdate = 0;// --- Callback Function ---
+int tempGmtOffset = 0;
+int settingsPage = 0;
+unsigned long lastClockUpdate = 0;
+
 void spotifyCallback(CurrentlyPlaying data) {
     lastKnownPlaying.trackName = String(data.trackName);
     lastKnownPlaying.numArtists = data.numArtists;
@@ -62,85 +65,167 @@ void handleTouch() {
         int16_t x = p.x;
         int16_t y = p.y;
         
+        int rotation = configManager.config.rotation;
+        bool isPortrait = (rotation == 0 || rotation == 2);
+        int screenWidth = isPortrait ? 240 : 320;
+        int screenHeight = isPortrait ? 320 : 240;
+
         if (isSettingsOpen) {
-            // Rotation buttons: y around 75-105
-            if (y > 75 && y < 105) {
-                for(int i=0; i<4; i++) {
-                    if (x > 10 + i*55 && x < 60 + i*55) {
-                        tempRotation = i;
-                        displayManager.drawSettingsPage(tempRotation, tempBrightness);
+            // 1. NEXT Button (Top Right)
+            if (x > screenWidth - 85 && y < 45) {
+                settingsPage = (settingsPage + 1) % 4;
+                displayManager.drawSettingsPage(settingsPage, tempRotation, tempBrightness, tempGmtOffset, WiFi.localIP().toString().c_str());
+                delay(300);
+                return;
+            }
+
+            // 2. Page Specific Content
+            if (settingsPage == 0) { // ROTATION
+                if (y > 90 && y < 180) {
+                    for(int i=0; i<4; i++) {
+                        int btnW = (screenWidth - 40) / 2;
+                        int bx = 10 + (i % 2) * (btnW + 10);
+                        int by = 90 + (i / 2) * 45;
+                        if (x > bx && x < bx + btnW && y > by && y < by + 35) {
+                            tempRotation = i;
+                            displayManager.drawSettingsPage(settingsPage, tempRotation, tempBrightness, tempGmtOffset, WiFi.localIP().toString().c_str());
+                            delay(200);
+                        }
+                    }
+                }
+            } 
+            else if (settingsPage == 1) { // BRIGHTNESS
+                int bY = 110;
+                if (y > bY && y < bY + 40) {
+                    int btnW = (screenWidth - 30) / 5;
+                    for(int i=1; i<=5; i++) {
+                        if (x > 10 + (i-1)*btnW && x < 10 + i*btnW) {
+                            tempBrightness = i;
+                            displayManager.setBrightness(tempBrightness);
+                            displayManager.drawSettingsPage(settingsPage, tempRotation, tempBrightness, tempGmtOffset, WiFi.localIP().toString().c_str());
+                            delay(200);
+                        }
+                    }
+                }
+            }
+            else if (settingsPage == 2) { // TIME
+                if (y > 140 && y < 185) {
+                    if (x > 20 && x < 100) { // - button
+                        tempGmtOffset -= 3600;
+                        displayManager.drawSettingsPage(settingsPage, tempRotation, tempBrightness, tempGmtOffset, WiFi.localIP().toString().c_str());
+                        delay(200);
+                    }
+                    if (x > screenWidth - 100 && x < screenWidth - 20) { // + button
+                        tempGmtOffset += 3600;
+                        displayManager.drawSettingsPage(settingsPage, tempRotation, tempBrightness, tempGmtOffset, WiFi.localIP().toString().c_str());
                         delay(200);
                     }
                 }
             }
-            // Brightness buttons: y around 145-175
-            else if (y > 145 && y < 175) {
-                for(int i=1; i<=5; i++) {
-                    if (x > 10 + (i-1)*55 && x < 60 + (i-1)*55) {
-                        tempBrightness = i;
-                        displayManager.setBrightness(tempBrightness);
-                        displayManager.drawSettingsPage(tempRotation, tempBrightness);
-                        delay(200);
-                    }
-                }
-            }
-            // SAVE button: y around 200-235
-            else if (y > 200 && y < 235 && x > 110 && x < 210) {
+
+            // 3. SAVE button (Bottom)
+            int sY = screenHeight - 60;
+            if (y > sY && x > (screenWidth-130)/2 && x < (screenWidth+130)/2) {
                 configManager.config.rotation = tempRotation;
                 configManager.config.brightness = tempBrightness;
+                configManager.config.gmtOffset_sec = tempGmtOffset;
                 configManager.saveConfig();
                 isSettingsOpen = false;
-                ESP.restart(); // Restart to apply rotation
+                ESP.restart();
             }
             return;
         }
 
-        // Settings button check: top right
-        if (y < 30 && x > 280) {
+        // Settings button check: top right corner (normal view)
+        if (y < 50 && x > (screenWidth - 60)) {
             isSettingsOpen = true;
+            settingsPage = 0;
             tempRotation = configManager.config.rotation;
             tempBrightness = configManager.config.brightness;
-            displayManager.drawSettingsPage(tempRotation, tempBrightness);
+            tempGmtOffset = configManager.config.gmtOffset_sec;
+            displayManager.drawSettingsPage(settingsPage, tempRotation, tempBrightness, tempGmtOffset, WiFi.localIP().toString().c_str());
             delay(500);
             return;
         }
 
-        if (y > 70 && y < 130) {
-            if (x > 165 && x < 210) {
+        // Playback buttons
+        int bx, by;
+        if (isPortrait) {
+            bx = (screenWidth - 145) / 2;
+            by = 210; // Match DisplayManager
+        } else {
+            bx = 170;
+            by = 90;
+        }
+
+        if (y > by - 35 && y < by + 35) {
+            if (x > bx && x < bx + 45) {
+                displayManager.drawButtons(lastKnownPlaying.isPlaying, 0); // Highlight Prev
+                delay(150);
                 spotifyHandler.prev();
                 lastUpdate = 0;
-            } else if (x > 220 && x < 270) {
+            } else if (x > bx + 50 && x < bx + 95) {
+                displayManager.drawButtons(lastKnownPlaying.isPlaying, 1); // Highlight Play
+                delay(150);
                 if (lastKnownPlaying.isPlaying) {
                     spotifyHandler.pause();
                 } else {
                     spotifyHandler.play();
                 }
                 lastUpdate = 0;
-            } else if (x > 275 && x < 320) {
+            } else if (x > bx + 100 && x < bx + 145) {
+                displayManager.drawButtons(lastKnownPlaying.isPlaying, 2); // Highlight Next
+                delay(150);
                 spotifyHandler.next();
                 lastUpdate = 0;
             }
         }
-        delay(300);
     }
 }
 
 void setup() {
     Serial.begin(115200);
-    configManager.loadConfig(); // Load early to get rotation
+    configManager.loadConfig(); 
     displayManager.begin(configManager.config.rotation);
+    displayManager.setBrightness(configManager.config.brightness); // Light up early!
     ts.begin();
+    ts.setRotation(configManager.config.rotation); 
+    ts.setThreshold(300); 
 
     // --- FACTORY RESET CHECK ---
-    // If screen is touched during the first 2 seconds of boot, wipe everything.
     if (ts.touched()) {
-        displayManager.showLoading("FACTORY RESET...\nRelease screen!");
-        delay(3000);
-        WiFiManager wm;
-        wm.resetSettings(); // Erase WiFi
-        SPIFFS.format();    // Erase Config
-        Serial.println("Factory Reset Complete!");
-        ESP.restart();
+        displayManager.drawResetConfirmation();
+        Serial.println("Reset screen triggered. Wait for release...");
+        while (ts.touched()) delay(10); 
+        delay(500); // Small buffer
+        
+        bool choiceMade = false;
+        int screenWidth = (configManager.config.rotation == 0 || configManager.config.rotation == 2) ? 240 : 320;
+        
+        while (!choiceMade) {
+            if (ts.touched()) {
+                CYD28_TS_Point p = ts.getPointScaled();
+                Serial.printf("Reset Touch: X=%d, Y=%d\n", p.x, p.y);
+                
+                // YES hitbox (wider): x: 0-150, y: 130-220
+                if (p.x > 0 && p.x < 150 && p.y > 130 && p.y < 220) {
+                    Serial.println("Reset Confirmed!");
+                    displayManager.showLoading("FACTORY RESET...");
+                    delay(2000);
+                    WiFiManager wm;
+                    wm.resetSettings(); 
+                    SPIFFS.format();    
+                    ESP.restart();
+                }
+                // NO hitbox (wider): x: (screenWidth-150) to screenWidth, y: 130-220
+                if (p.x > screenWidth - 150 && p.x < screenWidth && p.y > 130 && p.y < 220) {
+                    Serial.println("Reset Cancelled.");
+                    choiceMade = true;
+                }
+                delay(300);
+            }
+            delay(10);
+        }
     }
     
     if (!configManager.loadConfig()) {
@@ -153,7 +238,8 @@ void setup() {
             delay(3000);
             ESP.restart();
         }
-        configTime(0, 0, "pool.ntp.org"); // Initialize time for the clock
+        // Apply saved GMT Offset
+        configTime(configManager.config.gmtOffset_sec, 0, "pool.ntp.org"); 
     }
 
     spotifyHandler.begin(
@@ -188,9 +274,8 @@ void loop() {
     }
 
     handleTouch();
-    displayManager.loop();
-
     if (isSettingsOpen) return;
+    displayManager.loop();
 
     // Initial wipe if WiFi is connected but we haven't cleared the screen yet
     if (WiFi.status() == WL_CONNECTED && !initialWipeDone) {

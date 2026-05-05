@@ -12,12 +12,14 @@ Spotty-CYD is a premium, feature-rich Spotify controller designed specifically f
 ## ✨ Features
 
 - **🎨 Premium UI:** Custom-built rendering engine using `TFT_eSprite` for zero-flicker animations.
-- **🧈 Fluid Scrolling:** Infinite, liquid-smooth text scrolling for long track names and podcast titles.
-- **🛡️ Smart Rate-Limit Shield:** Implements exponential backoff (60s -> 120s -> 240s) and on-screen countdowns when Spotify throttles requests.
-- **🔮 Predictive Progress:** Animates the progress bar in real-time between API updates, reducing network calls by up to 70%.
-- **📉 Variable Polling:** Automatically adjusts check-in frequency (10s when playing, 3s near track end, 30s when paused).
-- **⚙️ On-Device Settings:** Adjust screen brightness and rotation directly from the touch interface.
-- **🖼️ Album Art:** High-quality JPEG decoding and display.
+- **🔄 Fully Responsive:** Dynamic layout engine that re-anchors elements for all 4 orientations (Portrait/Landscape).
+- **⚙️ Paginated Settings:** A modern 4-page menu for Rotation, Brightness, Time Zone, and System Info.
+- **🌍 Global Time Sync:** On-screen GMT Offset adjustment for worldwide local time support.
+- **🛡️ Safety Reset:** Interactive factory reset confirmation screen to prevent accidental data loss.
+- **📶 System Info:** Live display of local IP address, software version, and build date.
+- **🎨 Modern Aesthetics:** Refined slider-based settings icon and visual touch feedback (grey-flashing buttons).
+- **🧈 Fluid Scrolling:** Infinite, liquid-smooth text scrolling for long track names.
+- **🔮 Predictive Progress:** Real-time progress bar animation reduces network calls by up to 70%.
 
 ## 🛠️ Hardware Requirements
 
@@ -36,8 +38,8 @@ Spotty-CYD is a premium, feature-rich Spotify controller designed specifically f
 ### 2. Installation
 1. Clone this repository.
 2. Open in **VS Code** with the **PlatformIO** extension.
-3. Update `ConfigManager.h` or use the on-screen setup (if implemented) to provide your credentials.
-4. Build and Upload to your CYD.
+3. Build and Upload to your CYD.
+4. On first boot, connect to the `Spotify-CYD-Setup` Wi-Fi to enter your credentials.
 
 ## 📦 Dependencies
 
@@ -46,14 +48,16 @@ Spotty-CYD is a premium, feature-rich Spotify controller designed specifically f
 - `JPEGDEC` (Artwork)
 - `ArduinoJson` (Data Parsing)
 - `CYD28_TouchscreenR` (Touch)
+- `WiFiManager` (Provisioning)
 
 ---
 
 ## 🏗️ Roadmap
 - [ ] Multi-device playback switching.
 - [ ] Volume control slider.
-- [ ] Wi-Fi configuration portal (Captive Portal).
+- [x] Wi-Fi configuration portal (Captive Portal).
 - [ ] Improved font rendering for international characters.
 
 ---
 *Created with ❤️ for the ESP32 community.*
+
