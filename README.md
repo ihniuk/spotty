@@ -12,6 +12,7 @@ Spotty-CYD is a premium, feature-rich Spotify controller designed specifically f
 ## ✨ Features
 
 - **🎨 Premium UI:** Custom-built rendering engine using `TFT_eSprite` for zero-flicker animations.
+- **⚡ Zero-Touch Web Provisioning:** Flash the firmware and securely inject WiFi + Spotify credentials directly from your browser via the Web Serial API.
 - **🔄 Fully Responsive:** Dynamic layout engine that re-anchors elements for all 4 orientations (Portrait/Landscape).
 - **⚙️ Paginated Settings:** A modern 4-page menu for Rotation, Brightness, Time Zone, and System Info.
 - **🌍 Global Time Sync:** On-screen GMT Offset adjustment for worldwide local time support.
@@ -32,10 +33,18 @@ Spotty-CYD is a premium, feature-rich Spotify controller designed specifically f
 ### 1. Spotify Developer Setup
 1. Go to the [Spotify Developer Dashboard](https://developer.spotify.com/dashboard).
 2. Create a new App.
-3. Add `https://google.com/` to your **Redirect URIs**.
+3. Add `http://10.10.0.19/` (or your device's local IP address) to your **Redirect URIs**, OR use `https://google.com/` and capture the URL manually if you prefer the old fallback method.
 4. Note your **Client ID** and **Client Secret**.
 
-### 2. Installation
+### 2. Installation (Web Installer - Recommended)
+The easiest way to install Spotty-CYD is via the Web Installer (Requires Google Chrome or Microsoft Edge):
+1. Navigate to the Web Configurator *(External link coming soon)*.
+2. Enter your WiFi and Spotify Developer details directly into the web page.
+3. Plug in your CYD via USB.
+4. Click **Install & Configure**. The system will automatically flash the firmware and inject your credentials into the chip's raw memory.
+5. On the first boot, it will connect immediately to WiFi without requiring a captive portal.
+
+### 3. Manual Installation (PlatformIO)
 1. Clone this repository.
 2. Open in **VS Code** with the **PlatformIO** extension.
 3. Build and Upload to your CYD.

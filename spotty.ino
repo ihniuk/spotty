@@ -185,6 +185,7 @@ void handleTouch() {
 
 void setup() {
     Serial.begin(115200);
+    delay(2000); // Give serial monitor time to connect
     configManager.loadConfig(); 
     displayManager.begin(configManager.config.rotation);
     displayManager.setBrightness(configManager.config.brightness); // Light up early!
@@ -228,18 +229,30 @@ void setup() {
         }
     }
     
-    if (!configManager.loadConfig()) {
+    if (strlen(configManager.config.wifiSsid) == 0) {
         configManager.setupPortal(displayManager);
     } else {
         displayManager.showLoading("Connecting to WiFi...");
-        WiFiManager wm;
-        if (!wm.autoConnect("Spotify-CYD-Setup")) {
-            Serial.println("Failed to connect to WiFi!");
-            delay(3000);
-            ESP.restart();
+        WiFi.mode(WIFI_STA);
+        WiFi.disconnect();
+        delay(100);
+        WiFi.begin(configManager.config.wifiSsid, configManager.config.wifiPass);
+        
+        int attempts = 0;
+        while (WiFi.status() != WL_CONNECTED && attempts < 30) {
+            delay(500);
+            attempts++;
         }
-        // Apply saved GMT Offset
-        configTime(configManager.config.gmtOffset_sec, 0, "pool.ntp.org"); 
+        
+        if (WiFi.status() != WL_CONNECTED) {
+            Serial.println("WiFi timeout. Cleanly disconnecting before portal...");
+            WiFi.disconnect();
+            delay(500);
+            configManager.setupPortal(displayManager);
+        } else {
+            // Apply saved GMT Offset
+            configTime(configManager.config.gmtOffset_sec, 0, "pool.ntp.org"); 
+        }
     }
 
     spotifyHandler.begin(
@@ -249,7 +262,7 @@ void setup() {
     );
     
     displayManager.setBrightness(configManager.config.brightness);
-
+    
     if (!spotifyHandler.authComplete) {
         String ip = WiFi.localIP().toString();
         String url = "http://" + ip;
@@ -265,9 +278,56 @@ void setup() {
             ESP.restart();
         });
     }
+    Serial.println("DEVICE_READY");
+}
+
+void checkSerialConfig() {
+    if (Serial.available()) {
+        String input = Serial.readStringUntil('\n');
+        input.trim();
+        if (input.length() == 0) return;
+
+        if (input.startsWith("SET_CONFIG:")) {
+            Serial.println("COMMAND: SET_CONFIG received.");
+            String jsonStr = input.substring(11);
+            StaticJsonDocument<1536> doc;
+            DeserializationError error = deserializeJson(doc, jsonStr);
+            if (!error) {
+                Serial.println("JSON Parsed OK.");
+                if (doc.containsKey("ssid") && doc.containsKey("pass")) {
+                    WiFi.disconnect();
+                    WiFi.begin(doc["ssid"].as<const char*>(), doc["pass"].as<const char*>());
+                }
+                if (doc.containsKey("clientId")) strcpy(configManager.config.spotifyClientId, doc["clientId"]);
+                if (doc.containsKey("clientSecret")) strcpy(configManager.config.spotifyClientSecret, doc["clientSecret"]);
+                if (doc.containsKey("refreshToken")) strcpy(configManager.config.spotifyRefreshToken, doc["refreshToken"]);
+                
+                Serial.println("Writing to SPIFFS...");
+                if (configManager.saveConfig()) {
+                    Serial.println("CONF_OK");
+                } else {
+                    Serial.println("CONF_ERR: SPIFFS_WRITE");
+                }
+                delay(1000);
+                ESP.restart();
+            } else {
+                Serial.print("CONF_ERR: JSON_PARSE_"); Serial.println(error.c_str());
+            }
+        } else if (input.startsWith("WIPE_CONFIG:")) {
+            Serial.println("COMMAND: WIPE received.");
+            WiFiManager wm;
+            wm.resetSettings();
+            SPIFFS.format();
+            Serial.println("WIPE_OK");
+            delay(1000);
+            ESP.restart();
+        }
+    }
 }
 
 void loop() {
+    checkSerialConfig();
+
     if (!spotifyHandler.authComplete) {
         spotifyHandler.loop();
         return;
