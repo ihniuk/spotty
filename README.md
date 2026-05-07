@@ -33,7 +33,7 @@ Spotty-CYD is a premium, feature-rich Spotify controller designed specifically f
 ### 1. Spotify Developer Setup
 1. Go to the [Spotify Developer Dashboard](https://developer.spotify.com/dashboard).
 2. Create a new App.
-3. Add `http://10.10.0.19/` (or your device's local IP address) to your **Redirect URIs**, OR use `https://google.com/` and capture the URL manually if you prefer the old fallback method.
+3. Add `https://google.com/` and capture the URL manually if you prefer the old fallback method.
 4. Note your **Client ID** and **Client Secret**.
 
 ### 2. Installation (Web Installer - Recommended)
