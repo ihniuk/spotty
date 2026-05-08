@@ -178,11 +178,11 @@ public:
     if (getLocalTime(&timeinfo, 10)) {
       char timeStringBuff[10];
       strftime(timeStringBuff, sizeof(timeStringBuff), "%H:%M", &timeinfo);
-      tft.fillRect(5, 2, 80, 25, TFT_BLACK);
+      tft.fillRect(5, 0, 80, 24, TFT_BLACK);
       tft.setTextFont(2);
       tft.setTextSize(1);
       tft.setTextColor(TFT_WHITE);
-      tft.setCursor(10, 5);
+      tft.setCursor(10, 3);
       tft.print(timeStringBuff);
     }
   }
@@ -190,7 +190,7 @@ public:
   void drawWiFi(bool connected) {
     int x = _screenWidth - 65;
     int y = 18;
-    tft.fillRect(x - 15, 2, 40, 22, TFT_BLACK);
+    tft.fillRect(x - 15, 0, 40, 24, TFT_BLACK);
     if (connected) {
       tft.fillCircle(x, y, 2, TFT_WHITE);
       tft.drawCircleHelper(x, y, 7, 1, TFT_WHITE);
@@ -368,12 +368,13 @@ public:
           int artX = _isPortrait ? (_screenWidth - 200) / 2 : 10;
           int artY = _isPortrait ? 35 : 25;
           
-          jpeg.decode(artX, artY, JPEG_SCALE_HALF);
-          jpeg.close();
-
           drawClock();
           drawWiFi(WiFi.status() == WL_CONNECTED);
           drawSettingsButton();
+          
+          jpeg.decode(artX, artY, JPEG_SCALE_HALF);
+          jpeg.close();
+
           drawButtons(_isPlaying);
         }
         free(buffer);
