@@ -363,8 +363,7 @@ void loop() {
         // Cap it so it doesn't go past 100% before the next poll
         if (predictedMs > lastKnownPlaying.durationMs) predictedMs = lastKnownPlaying.durationMs;
         
-        float predictedProgress = (float)predictedMs / lastKnownPlaying.durationMs;
-        displayManager.updateProgress(predictedProgress);
+        displayManager.updateProgress(predictedMs, lastKnownPlaying.durationMs);
     }
 
     // Dynamic Polling Logic
@@ -403,10 +402,9 @@ void loop() {
             }
 
             // Immediate update for the progress bar
-            float progress = (float)lastKnownPlaying.progressMs / lastKnownPlaying.durationMs;
-            displayManager.updateProgress(progress);
+            displayManager.updateProgress(lastKnownPlaying.progressMs, lastKnownPlaying.durationMs);
             
-            displayManager.drawWiFi(WiFi.status() == WL_CONNECTED);
+            displayManager.drawWiFi(WiFi.status() == WL_CONNECTED ? WiFi.RSSI() : 0);
             displayManager.drawSettingsButton();
             displayManager.drawClock();
             
@@ -418,7 +416,7 @@ void loop() {
                 displayManager.updateTrackInfo("No Music", "Playing");
                 currentTrack = "No Music";
             }
-            displayManager.drawWiFi(WiFi.status() == WL_CONNECTED);
+            displayManager.drawWiFi(WiFi.status() == WL_CONNECTED ? WiFi.RSSI() : 0);
             displayManager.drawSettingsButton();
             displayManager.drawClock();
             currentCooldownWait = 60000;

@@ -13,12 +13,13 @@ Spotty-CYD is a premium, feature-rich Spotify controller designed specifically f
 
 - **🎨 Premium UI:** Custom-built rendering engine using `TFT_eSprite` for zero-flicker animations.
 - **⚡ Zero-Touch Web Provisioning:** Flash the firmware and securely inject WiFi + Spotify credentials directly from your browser via the Web Serial API.
+- **⏱️ Live Track Countdown:** Real-time elapsed and remaining time labels that sync perfectly with the progress bar.
+- **📶 Dynamic WiFi Meter:** Working signal strength (RSSI) icon that provides live feedback on network health.
+- **🎮 Modern Playback Controls:** High-polish, circular UI buttons designed to mimic the premium Spotify experience.
 - **🔄 Fully Responsive:** Dynamic layout engine that re-anchors elements for all 4 orientations (Portrait/Landscape).
 - **⚙️ Paginated Settings:** A modern 4-page menu for Rotation, Brightness, Time Zone, and System Info.
 - **🌍 Global Time Sync:** On-screen GMT Offset adjustment for worldwide local time support.
 - **🛡️ Safety Reset:** Interactive factory reset confirmation screen to prevent accidental data loss.
-- **📶 System Info:** Live display of local IP address, software version, and build date.
-- **🎨 Modern Aesthetics:** Refined slider-based settings icon and visual touch feedback (grey-flashing buttons).
 - **🧈 Fluid Scrolling:** Infinite, liquid-smooth text scrolling for long track names.
 - **🔮 Predictive Progress:** Real-time progress bar animation reduces network calls by up to 70%.
 

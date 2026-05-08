@@ -17,6 +17,8 @@ private:
   JPEGDEC jpeg;
   String _currentTitle = "No Music";
   String _currentArtist = "Playing";
+  long _currentMs = 0;
+  long _durationMs = 0;
   bool _isPlaying = false;
   int _scrollOffset = 0;
   int _titleWidth = 0;
@@ -51,7 +53,7 @@ public:
 
     // Sprite width matches screen width
     if (spr.created()) spr.deleteSprite();
-    spr.createSprite(_screenWidth, 65);
+    spr.createSprite(_screenWidth, 90);
   }
 
   void setBrightness(int level) {
@@ -111,33 +113,65 @@ public:
     }
   }
 
+  void updateProgress(long currentMs, long durationMs) { 
+    _currentMs = currentMs;
+    _durationMs = durationMs;
+    _lastProgress = (durationMs > 0) ? (float)currentMs / durationMs : 0;
+    renderBottomSection(_lastProgress); 
+  }
+
   void renderBottomSection(float progress) {
     _lastProgress = progress;
     spr.fillSprite(TFT_BLACK);
 
     int barWidth = _screenWidth - 20;
-    spr.fillRect(10, 0, barWidth, 8, 0x3186);
-    spr.fillRect(10, 0, (int)(barWidth * progress), 8, 0x1DCA);
+    
+    // Time labels
+    spr.setTextFont(2);
+    spr.setTextColor(0xBDF7);
+    
+    // Format elapsed time
+    char elapsedStr[10];
+    int eMin = (_currentMs / 1000) / 60;
+    int eSec = (_currentMs / 1000) % 60;
+    sprintf(elapsedStr, "%d:%02d", eMin, eSec);
+    spr.setCursor(10, 0);
+    spr.print(elapsedStr);
+    
+    // Format remaining time
+    char remainStr[10];
+    long remainMs = _durationMs - _currentMs;
+    if (remainMs < 0) remainMs = 0;
+    int rMin = (remainMs / 1000) / 60;
+    int rSec = (remainMs / 1000) % 60;
+    sprintf(remainStr, "-%d:%02d", rMin, rSec);
+    int rWidth = spr.textWidth(remainStr);
+    spr.setCursor(_screenWidth - 10 - rWidth, 0);
+    spr.print(remainStr);
+
+    // Progress bar (moved down slightly)
+    spr.fillRect(10, 20, barWidth, 6, 0x3186);
+    spr.fillRect(10, 20, (int)(barWidth * progress), 6, 0x1DCA);
 
     spr.setTextFont(4);
     spr.setTextColor(TFT_WHITE);
     spr.setTextWrap(false);
     if (_titleWidth > barWidth) {
-      spr.setViewport(10, 15, barWidth, 40);
+      spr.setViewport(10, 32, barWidth, 40);
       spr.setCursor(-_scrollOffset, 0);
       spr.print(_currentTitle);
       spr.resetViewport();
     } else {
-      spr.setCursor(10, 15);
+      spr.setCursor(10, 32);
       spr.print(_currentTitle);
     }
 
     spr.setTextColor(0xBDF7);
     spr.setTextFont(2);
-    spr.setCursor(10, 45);
+    spr.setCursor(10, 62);
     spr.print(_currentArtist);
 
-    spr.pushSprite(0, _screenHeight - 65);
+    spr.pushSprite(0, _screenHeight - 90);
   }
 
   void drawButtons(bool isPlaying, int highlightedButton = -1) {
@@ -145,30 +179,33 @@ public:
     int bx, by;
     if (_isPortrait) {
       bx = (_screenWidth - 145) / 2;
-      by = 210; // Moved up from 245 to avoid progress bar
+      by = 200; 
     } else {
       bx = 170;
-      by = 90;
+      by = 85;
     }
     
-    tft.fillRect(bx, by - 30, 145, 60, TFT_BLACK);
+    tft.fillRect(bx - 5, by - 35, 155, 70, TFT_BLACK);
 
-    // Prev
+    // Prev Button
     uint16_t c1 = (highlightedButton == 0) ? TFT_DARKGREY : TFT_WHITE;
-    tft.fillTriangle(bx + 30, by - 20, bx + 30, by + 20, bx + 5, by, c1);
+    tft.fillRect(bx + 10, by - 12, 4, 24, c1);
+    tft.fillTriangle(bx + 15, by, bx + 35, by - 12, bx + 35, by + 12, c1);
     
-    // Play/Pause
+    // Play/Pause Circle
     uint16_t c2 = (highlightedButton == 1) ? TFT_DARKGREY : TFT_WHITE;
+    tft.fillCircle(bx + 72, by, 28, c2);
     if (isPlaying) {
-      tft.fillRect(bx + 55, by - 15, 8, 30, c2);
-      tft.fillRect(bx + 75, by - 15, 8, 30, c2);
+      tft.fillRect(bx + 72 - 7, by - 10, 5, 20, TFT_BLACK);
+      tft.fillRect(bx + 72 + 2, by - 10, 5, 20, TFT_BLACK);
     } else {
-      tft.fillTriangle(bx + 55, by - 20, bx + 55, by + 20, bx + 85, by, c2);
+      tft.fillTriangle(bx + 72 - 6, by - 10, bx + 72 - 6, by + 10, bx + 72 + 10, by, TFT_BLACK);
     }
     
-    // Next
+    // Next Button
     uint16_t c3 = (highlightedButton == 2) ? TFT_DARKGREY : TFT_WHITE;
-    tft.fillTriangle(bx + 110, by - 20, bx + 110, by + 20, bx + 135, by, c3);
+    tft.fillTriangle(bx + 110, by - 12, bx + 110, by + 12, bx + 130, by, c3);
+    tft.fillRect(bx + 131, by - 12, 4, 24, c3);
   }
 
   void updateProgress(float progress) { renderBottomSection(progress); }
@@ -178,28 +215,47 @@ public:
     if (getLocalTime(&timeinfo, 10)) {
       char timeStringBuff[10];
       strftime(timeStringBuff, sizeof(timeStringBuff), "%H:%M", &timeinfo);
-      tft.fillRect(5, 0, 80, 24, TFT_BLACK);
+      int x = _screenWidth - 150;
+      tft.fillRect(x, 0, 80, 24, TFT_BLACK);
       tft.setTextFont(2);
       tft.setTextSize(1);
       tft.setTextColor(TFT_WHITE);
-      tft.setCursor(10, 3);
+      tft.setCursor(x + 5, 3);
       tft.print(timeStringBuff);
     }
   }
 
-  void drawWiFi(bool connected) {
+  void drawWiFi(int rssi) {
     int x = _screenWidth - 65;
     int y = 18;
     tft.fillRect(x - 15, 0, 40, 24, TFT_BLACK);
-    if (connected) {
-      tft.fillCircle(x, y, 2, TFT_WHITE);
+    
+    if (rssi == 0) {
+      // Disconnected: Red X
+      tft.drawLine(x - 8, 8, x + 8, 20, TFT_RED);
+      tft.drawLine(x + 8, 8, x - 8, 20, TFT_RED);
+      return;
+    }
+
+    // Always draw the base dot
+    tft.fillCircle(x, y, 2, TFT_WHITE);
+    
+    // Level 1: Fair (-80 dBm)
+    if (rssi > -90) {
       tft.drawCircleHelper(x, y, 7, 1, TFT_WHITE);
       tft.drawCircleHelper(x, y, 7, 2, TFT_WHITE);
-      tft.drawCircleHelper(x, y, 12, 1, TFT_WHITE);
-      tft.drawCircleHelper(x, y, 12, 2, TFT_WHITE);
-    } else {
-      tft.drawLine(x - 10, 5, x + 10, 20, TFT_RED);
-      tft.drawLine(x + 10, 5, x - 10, 20, TFT_RED);
+    }
+    
+    // Level 2: Good (-70 dBm)
+    if (rssi > -70) {
+      tft.drawCircleHelper(x, y, 11, 1, TFT_WHITE);
+      tft.drawCircleHelper(x, y, 11, 2, TFT_WHITE);
+    }
+    
+    // Level 3: Excellent (-60 dBm)
+    if (rssi > -55) {
+      tft.drawCircleHelper(x, y, 15, 1, TFT_WHITE);
+      tft.drawCircleHelper(x, y, 15, 2, TFT_WHITE);
     }
   }
 
@@ -366,7 +422,7 @@ public:
           jpeg.setUserPointer(&tft);
           
           int artX = _isPortrait ? (_screenWidth - 200) / 2 : 10;
-          int artY = _isPortrait ? 35 : 25;
+          int artY = _isPortrait ? 35 : 5;
           
           drawClock();
           drawWiFi(WiFi.status() == WL_CONNECTED);
